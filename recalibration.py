@@ -15,7 +15,7 @@ class HistogramBinning():
         else: self.labels = np.array(labels)
         self.n_bins = n_bins
         self.classes = len(self.logits[0])
-        
+     
     def fit_histogram(self):
         Bins = np.zeros((self.classes, self.n_bins, 2), dtype=np.float32)
         for i, x in enumerate(self.logits):
@@ -66,29 +66,17 @@ class TemperatureScailing(object):
         self.n_bins = n_bins
     
     def temperature_scale(self, logits):
-        """
-        Perform temperature scaling on logits
-        """
-        # Expand temperature to match the size of logits
         temperature = self.temperature.unsqueeze(1).expand(logits.size(0), logits.size(1))
         return logits / temperature
     
-    def fit_temperature(self, lr = 0.01, epoch = 20):
+    def fit_temperature(self, lr = 0.1, epoch = 20):
         nll_criterion = nn.CrossEntropyLoss()
-        ece_criterion = ECELoss()
         if type(self.logits) == torch.Tensor: logits = self.logits
         else: logits = torch.from_numpy(self.logits)
         if type(self.labels) == torch.LongTensor: labels = self.labels
         else: labels = torch.from_numpy(self.labels).type(torch.LongTensor)
-        # Calculate NLL and ECE before temperature scaling
         before_temperature_nll = nll_criterion(logits, labels).item()
         print(f"Before temperature - NLL : {before_temperature_nll:.6f}")
-        #before_temperature_ece = ece_criterion.loss(self.logits,self.labels,self.n_bins)
-        #before_temperature_ece = ece_criterion(logits, labels).item()
-        #ece_2 = ece_criterion_2.loss(logits,labels)
-        #print('Before temperature - NLL: %.6f, ECE: %.6f' % (before_temperature_nll, before_temperature_ece))
-        #print(ece_2)
-        # Next: optimize the temperature w.r.t. NLL
         optimizer = optim.LBFGS([self.temperature], lr=lr, max_iter=epoch)
 
         def eval():
@@ -97,18 +85,13 @@ class TemperatureScailing(object):
             return loss
         optimizer.step(eval)
 
-        # Calculate NLL and ECE after temperature scaling
         after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
         print(f"After temperature - NLL : {after_temperature_nll:.6f}")
-        #after_temperature_ece = ece_criterion.loss(self.temperature_scale(logits).detach().numpy(),labels.numpy(),self.n_bins)
-        #after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
-        #print('Optimal temperature: %.6f' % self.temperature.item())
-        #print('After temperature - NLL: %.6f, ECE: %.6f' % (after_temperature_nll, after_temperature_ece))
         self.optim_temp = self.temperature.item()
         
     def __calibrate(self, x):
-        x /= self.optim_temp
-        sm = np.exp(x) / np.sum(np.exp(x)) # softmax
+        tmp = x/self.optim_temp
+        sm = np.exp(tmp) / np.sum(np.exp(tmp)) # softmax
         return sm
     
     def calibrate(self, x=None):

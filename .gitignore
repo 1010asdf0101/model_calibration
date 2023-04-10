@@ -2,7 +2,10 @@ __pycache__/
 calibration_library/
 data/
 plots/
+hist/
+temp/
 *.txt
 *.png
 *.jpg
 *.csv
+test.ipynb
