@@ -55,7 +55,7 @@ PATH = 'data/resnet18_total(1+2)_best.pt'
 trained = timm.create_model('resnet18', pretrained=False, num_classes = 6)
 trained.load_state_dict(torch.load(PATH, map_location=device))
 trained.to(device)
-ROOT = Path('/home/shawnman99/calibration')
+ROOT = Path('/home/calibration')
 DATA_DIR = ROOT / "data"
 CLASS_NAMES = ['crack', 'ddul', 'imul', 'ok', 'scratch', 'void']
 test_paths = [p for p in (DATA_DIR / f'total(1+2)_split/valid').glob('*/*')
